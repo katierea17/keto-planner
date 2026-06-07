@@ -1009,7 +1009,7 @@
   <!-- RIGHT: sidebar totals -->
   <div class="sidebar">
     <div>
-      <h3>Today's Totals</h3>
+      <h3 id="totals-date-label">Totals</h3>
       <div style="display:flex;flex-direction:column;gap:16px;">
 
         <div class="stat-block">
@@ -1380,19 +1380,25 @@ let dragFoodId = null;
 let dragInstanceId = null; // for dragging already-placed cards
 let instanceCounter = 0;
 
-// Date helpers
+// Date helpers — all local time, no UTC shift
+function localDateStr(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 function todayStr() {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
+  return localDateStr(new Date());
 }
 function dateStrFromOffset(offset) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
+  return localDateStr(d);
 }
 function offsetFromDateStr(ds) {
-  const today = new Date(todayStr());
-  const target = new Date(ds);
+  const [y, m, day] = ds.split('-').map(Number);
+  const target = new Date(y, m - 1, day);
+  const [ty, tm, td] = todayStr().split('-').map(Number);
+  const today = new Date(ty, tm - 1, td);
   return Math.round((target - today) / 86400000);
 }
 
@@ -2161,26 +2167,23 @@ document.getElementById('custom-add-btn').addEventListener('click', () => {
 
 // ─── Date navigation ───────────────────────────────────────────────────────────
 function loadDateLabel() {
-  const offset = offsetFromDateStr(currentDate);
-  const el = document.getElementById('date-label');
-  if (offset === 0) {
-    el.textContent = 'Today';
-  } else if (offset === -1) {
-    el.textContent = 'Yesterday';
-  } else {
-    const d = new Date(currentDate + 'T12:00:00');
-    el.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  }
-  document.getElementById('next-day').disabled = (currentDate === todayStr());
+  const [cy, cm, cd] = currentDate.split('-').map(Number);
+  const d = new Date(cy, cm - 1, cd);
+  const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  document.getElementById('date-label').textContent = label;
+  document.getElementById('totals-date-label').textContent = label;
+  document.getElementById('next-day').disabled = (currentDate >= dateStrFromOffset(1));
 }
 
 function navigateDay(offset) {
   saveState();
-  const d = new Date(currentDate + 'T12:00:00');
+  const [cy, cm, cd] = currentDate.split('-').map(Number);
+  const d = new Date(cy, cm - 1, cd);
   d.setDate(d.getDate() + offset);
-  currentDate = d.toISOString().slice(0, 10);
-  // Don't allow going past today
-  if (currentDate > todayStr()) currentDate = todayStr();
+  currentDate = localDateStr(d);
+  // Allow planning up to one day ahead (tomorrow)
+  const tomorrow = dateStrFromOffset(1);
+  if (currentDate > tomorrow) currentDate = tomorrow;
   loadDateLabel();
   loadPlan();
   updateCopyYesterdayBtn();
@@ -2233,7 +2236,8 @@ function updateHistory() {
     const actuals = getActualsForDay(ds);
     if (!actuals || actuals.count === 0) continue;
     hasAny = true;
-    const d = new Date(ds + 'T12:00:00');
+    const [hy, hm, hd] = ds.split('-').map(Number);
+    const d = new Date(hy, hm - 1, hd);
     const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
     const row = document.createElement('div');
     row.className = 'history-row';
