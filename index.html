@@ -1377,6 +1377,7 @@ const FOODS = [
 // ─── State ─────────────────────────────────────────────────────────────────────
 let placed = []; // { instanceId, foodId, qty, sizeIndex, eaten }
 let dragFoodId = null;
+let dragInstanceId = null; // for dragging already-placed cards
 let instanceCounter = 0;
 
 // Date helpers
@@ -1559,16 +1560,39 @@ function setupDropZones() {
     zone.addEventListener('drop', e => {
       e.preventDefault();
       zone.classList.remove('drag-over');
-      if (!dragFoodId) return;
 
+      // Moving an existing placed card between zones
+      if (dragInstanceId !== null) {
+        const iid = dragInstanceId;
+        dragInstanceId = null;
+        const existingCard = document.querySelector(`[data-instance-id="${iid}"]`);
+        if (!existingCard) return;
+        const oldZone = existingCard.closest('.drop-zone');
+        if (oldZone === zone) return; // dropped back in same zone
+
+        // Move the card DOM element
+        zone.appendChild(existingCard);
+
+        // Restore empty hint in old zone if now empty
+        if (!oldZone.querySelector('.placed-card')) {
+          const h = document.createElement('div');
+          h.className = 'empty-hint';
+          h.textContent = oldZone.dataset.zone === 'breakfast' ? 'Drag breakfast items here'
+            : oldZone.dataset.zone === 'snacks' ? 'Drag snacks here' : 'Drag meals here';
+          oldZone.appendChild(h);
+        }
+        // Remove empty hint in new zone
+        const hint = zone.querySelector('.empty-hint');
+        if (hint) hint.remove();
+
+        updateTotals();
+        saveState();
+        return;
+      }
+
+      if (!dragFoodId) return;
       const food = FOODS.find(f => f.id === dragFoodId);
       if (!food) return;
-
-      // Only allow correct zone (loose check — meals can go anywhere)
-      const zoneId = zone.dataset.zone;
-      if (food.zone !== zoneId && !(food.type === 'meal' && zoneId === 'meals')) {
-        // still allow drops anywhere for flexibility
-      }
 
       const instanceId = ++instanceCounter;
       placed.push({
@@ -1596,6 +1620,17 @@ function renderPlacedCard(zone, food, instanceId) {
   const div = document.createElement('div');
   div.className = `placed-card type-${food.type}`;
   div.dataset.instanceId = instanceId;
+  div.draggable = true;
+  div.addEventListener('dragstart', e => {
+    dragInstanceId = instanceId;
+    dragFoodId = null;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => div.style.opacity = '0.4', 0);
+  });
+  div.addEventListener('dragend', () => {
+    dragInstanceId = null;
+    div.style.opacity = '';
+  });
 
   const macros = getMacrosForInstance(instanceId);
 
@@ -2224,6 +2259,12 @@ function showRecommendationBanner() {
   const banner = document.getElementById('rec-banner');
   const recText = document.getElementById('rec-text');
 
+  // Only show recommendations when viewing today
+  if (currentDate !== todayStr()) {
+    banner.style.display = 'none';
+    return;
+  }
+
   const yesterdayStr = dateStrFromOffset(-1);
   const yActuals = getActualsForDay(yesterdayStr);
   if (!yActuals || yActuals.count === 0) {
@@ -2232,7 +2273,7 @@ function showRecommendationBanner() {
   }
 
   const recs = [];
-  if (yActuals.carb > 18) recs.push('You hit your carb limit yesterday — consider fewer drinks or swapping kale for romaine.');
+  if (yActuals.carb > 18) recs.push('You hit your carb limit yesterday — the matcha drinks and almond milk add up fast. We will try cutting one today.');
   else if (yActuals.carb <= 12) recs.push('Plenty of carb headroom yesterday — you could add more veg today.');
   if (yActuals.cal < 1500) recs.push('Under your calorie goal yesterday — add more fat today (avocado, butter, olive oil).');
   else if (yActuals.cal > 1900) recs.push('Over your calorie goal — try trimming a portion or skipping the cheese snack.');
