@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keto Meal Planner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f0f;
+    color: #e8e8e8;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  header h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #f0f0f0;
+    letter-spacing: -0.3px;
+  }
+
+  header .badge {
+    background: #2d4a2d;
+    color: #7ecb7e;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .nav-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 5px;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+  }
+  .nav-btn:hover:not(:disabled) { color: #ccc; background: #252525; }
+  .nav-btn:disabled { color: #444; cursor: default; }
+
+  #date-label {
+    font-size: 0.85rem;
+    color: #aaa;
+    min-width: 90px;
+    text-align: center;
+  }
+
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+    height: calc(100vh - 57px);
+  }
+
+  /* LEFT PANEL — item library */
+  .library {
+    width: 280px;
+    min-width: 280px;
+    background: #141414;
+    border-right: 1px solid #222;
+    overflow-y: auto;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .library-section h3 {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 8px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .library-section h3:hover { color: #999; }
+
+  .section-toggle {
+    font-size: 0.6rem;
+    color: #444;
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+
+  .library-section.collapsed .section-toggle {
+    transform: rotate(-90deg);
+  }
+
+  .library-section.collapsed .section-body {
+    display: none;
+  }
+
+  .food-card-wrap {
+    position: relative;
+  }
+
+  .food-card-wrap .card-delete {
+    display: none;
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    background: #2a1a1a;
+    border: none;
+    color: #666;
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color 0.1s, background 0.1s;
+    z-index: 2;
+  }
+
+  .food-card-wrap:hover .card-delete {
+    display: block;
+  }
+
+  .food-card-wrap .card-delete:hover {
+    color: #e05555;
+    background: #3a1a1a;
+  }
+
+  .food-card-wrap .card-edit {
+    display: none;
+    position: absolute;
+    top: 5px;
+    right: 28px;
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 0.7rem;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color 0.1s, background 0.1s;
+    z-index: 2;
+  }
+
+  .food-card-wrap:hover .card-edit {
+    display: block;
+  }
+
+  .food-card-wrap .card-edit:hover {
+    color: #7eaaef;
+    background: #1a1a2a;
+  }
+
+  .card-edit-form {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 4px;
+  }
+
+  .card-edit-form input[type="text"],
+  .card-edit-form input[type="number"] {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #ddd;
+    font-size: 0.75rem;
+    padding: 4px 7px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+
+  .card-edit-form input:focus { border-color: #555; }
+
+  .card-edit-macro-row {
+    display: flex;
+    gap: 5px;
+  }
+
+  .card-edit-macro-row .ef {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .card-edit-macro-row label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555;
+  }
+
+  .card-edit-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .card-edit-save {
+    flex: 1;
+    background: #1f2e1f;
+    border: 1px solid #2d4a2d;
+    color: #7ecb7e;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .card-edit-save:hover { background: #253525; }
+
+  .card-edit-cancel {
+    background: #222;
+    border: 1px solid #333;
+    color: #666;
+    font-size: 0.7rem;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .card-edit-cancel:hover { background: #2a2a2a; }
+
+  .food-card {
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: grab;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .food-card:hover {
+    border-color: #444;
+    background: #242424;
+  }
+
+  .food-card.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+  }
+
+  .food-card .card-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .food-card .card-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .food-card .card-desc {
+    font-size: 0.67rem;
+    color: #555;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+
+  .food-card .card-macros {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .macro-chip {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+
+  .macro-chip.cal { background: #2a1f0a; color: #d4891a; }
+  .macro-chip.carb { background: #1a2a1a; color: #7ecb7e; }
+  .macro-chip.protein { background: #1a1a2a; color: #7eaaef; }
+  .macro-chip.fat { background: #2a1a2a; color: #c77ec7; }
+
+  .food-card.type-breakfast { border-left: 3px solid #d4891a; }
+  .food-card.type-snack { border-left: 3px solid #7eaaef; }
+  .food-card.type-meal { border-left: 3px solid #c77ec7; }
+
+  /* Checkbox on placed cards */
+  .placed-card .eaten-check {
+    position: absolute;
+    top: 9px;
+    left: 10px;
+    width: 14px;
+    height: 14px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .placed-card .eaten-check:checked {
+    background: #2d6a2d;
+    border-color: #4a9a4a;
+  }
+  .placed-card .eaten-check:checked::after {
+    content: '✓';
+    display: block;
+    color: #7ecb7e;
+    font-size: 9px;
+    text-align: center;
+    line-height: 12px;
+    font-weight: 700;
+  }
+  .placed-card.not-eaten {
+    opacity: 0.45;
+  }
+  .placed-card .card-name,
+  .placed-card .card-desc {
+    padding-left: 20px;
+  }
+
+  /* Recommendation banner */
+  #rec-banner {
+    background: #1a2e1a;
+    border: 1px solid #2d4a2d;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: #7ecb7e;
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+  #rec-banner .rec-icon { flex-shrink: 0; font-size: 1rem; }
+  #rec-banner .rec-text { flex: 1; }
+  #rec-banner .rec-dismiss {
+    background: none;
+    border: none;
+    color: #4a7a4a;
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+    border-radius: 3px;
+    transition: color 0.1s;
+    flex-shrink: 0;
+  }
+  #rec-banner .rec-dismiss:hover { color: #7ecb7e; }
+
+  /* Copy yesterday button */
+  #copy-yesterday-btn {
+    display: none;
+    align-self: center;
+    background: #1f2e1f;
+    border: 1px solid #2d4a2d;
+    color: #7ecb7e;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin: 4px 0;
+  }
+  #copy-yesterday-btn:hover { background: #253525; }
+
+  /* History section */
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .history-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+    cursor: pointer;
+    padding: 3px 4px;
+    border-radius: 5px;
+    transition: background 0.1s;
+  }
+  .history-row:hover { background: #1e1e1e; }
+  .history-row .hr-date { color: #666; }
+  .history-row .hr-vals { color: #888; font-variant-numeric: tabular-nums; }
+
+  /* Planned vs Actual */
+  .stat-planned {
+    font-size: 0.65rem;
+    color: #555;
+    margin-top: 1px;
+  }
+
+  /* CENTER — day planner */
+  .planner {
+    flex: 1;
+    padding: 20px 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .planner-section {
+    background: #161616;
+    border: 1px solid #222;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .planner-section-header {
+    background: #1c1c1c;
+    border-bottom: 1px solid #222;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .planner-section-header .title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .section-title-breakfast { color: #d4891a; }
+  .section-title-snacks { color: #7eaaef; }
+  .section-title-meals { color: #c77ec7; }
+
+  .planner-section-header .section-total {
+    font-size: 0.72rem;
+    color: #555;
+  }
+
+  .drop-zone {
+    min-height: 70px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 10px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 8px;
+    transition: background 0.15s;
+  }
+
+  .drop-zone.drag-over {
+    background: #1f2a1f;
+    outline: 2px dashed #4a7a4a;
+    outline-offset: -4px;
+    border-radius: 4px;
+  }
+
+  .drop-zone .empty-hint {
+    width: 100%;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #333;
+    padding: 16px;
+    pointer-events: none;
+  }
+
+  .placed-card {
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 10px 12px;
+    position: relative;
+    max-width: 220px;
+    flex-shrink: 0;
+    animation: popIn 0.15s ease-out;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .placed-card.type-breakfast { border-left: 3px solid #d4891a; }
+  .placed-card.type-snack { border-left: 3px solid #7eaaef; }
+  .placed-card.type-meal { border-left: 3px solid #c77ec7; }
+
+  .placed-card .card-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin-bottom: 4px;
+    padding-right: 20px;
+  }
+
+  .placed-card .card-desc {
+    font-size: 0.68rem;
+    color: #555;
+    margin-top: 1px;
+    margin-bottom: 4px;
+    padding-right: 20px;
+  }
+
+  .placed-card .card-macros {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .placed-card .remove-btn {
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #444;
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.1s, background 0.1s;
+  }
+
+  .placed-card .edit-placed-btn {
+    position: absolute;
+    top: 7px;
+    right: 28px;
+    background: none;
+    border: none;
+    color: #444;
+    font-size: 0.72rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.1s, background 0.1s;
+  }
+
+  .placed-card .edit-placed-btn:hover {
+    color: #7eaaef;
+    background: #1a1a2a;
+  }
+
+  .placed-card .remove-btn:hover {
+    color: #e05555;
+    background: #2a1a1a;
+  }
+
+  /* customizable meal card fields */
+  .placed-card .meal-fields {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .meal-field-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: #888;
+  }
+
+  .meal-field-row label {
+    min-width: 60px;
+    color: #666;
+  }
+
+  .meal-field-row input[type="number"],
+  .meal-field-row select {
+    background: #252525;
+    border: 1px solid #333;
+    color: #ccc;
+    font-size: 0.72rem;
+    padding: 3px 6px;
+    border-radius: 5px;
+    width: 60px;
+    outline: none;
+  }
+
+  .meal-field-row select { width: 100px; }
+
+  .meal-field-row input:focus,
+  .meal-field-row select:focus { border-color: #555; }
+
+  /* RIGHT PANEL — totals */
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: #141414;
+    border-left: 1px solid #222;
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sidebar h3 {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 12px;
+  }
+
+  .stat-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #555;
+    font-weight: 600;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+
+  .stat-value.calories { color: #d4891a; }
+  .stat-value.carbs { color: #7ecb7e; }
+  .stat-value.protein { color: #7eaaef; }
+  .stat-value.fat { color: #c77ec7; }
+
+  .stat-unit {
+    font-size: 0.7rem;
+    color: #555;
+    margin-top: 2px;
+  }
+
+  .goal-bar {
+    height: 4px;
+    background: #222;
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+
+  .goal-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .goal-bar-fill.calories { background: #d4891a; }
+  .goal-bar-fill.carbs { background: #7ecb7e; }
+
+  .goal-text {
+    font-size: 0.62rem;
+    color: #444;
+    margin-top: 3px;
+  }
+
+  .divider {
+    height: 1px;
+    background: #222;
+  }
+
+  .breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+  }
+
+  .breakdown-row .br-name {
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+
+  .breakdown-row .br-val {
+    color: #999;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    margin-left: 6px;
+  }
+
+  .reset-btn {
+    margin-top: auto;
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    color: #666;
+    font-size: 0.72rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    text-align: center;
+  }
+
+  .reset-btn:hover { color: #e05555; border-color: #5a2222; }
+
+  /* Custom card builder */
+  .custom-card-builder {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 10px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .custom-input {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #ddd;
+    font-size: 0.78rem;
+    padding: 5px 8px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+
+  .custom-input:focus { border-color: #555; }
+  .custom-input::placeholder { color: #444; }
+
+  .custom-row {
+    display: flex;
+    gap: 5px;
+  }
+
+  .custom-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .custom-field label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #555;
+    padding-left: 1px;
+  }
+
+  .custom-field input {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #ddd;
+    font-size: 0.75rem;
+    padding: 4px 5px;
+    outline: none;
+    width: 100%;
+    text-align: center;
+    transition: border-color 0.15s;
+  }
+
+  .custom-field input:focus { border-color: #555; }
+  .custom-field input::placeholder { color: #3a3a3a; }
+
+  .custom-add-btn {
+    background: #1f2e1f;
+    border: 1px solid #2d4a2d;
+    color: #7ecb7e;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    text-align: center;
+  }
+
+  .custom-add-btn:hover { background: #253525; border-color: #3d6a3d; }
+
+  .food-card.type-custom { border-left: 3px solid #888; }
+
+  .custom-name-wrap {
+    position: relative;
+  }
+
+  .custom-lookup-status {
+    font-size: 0.65rem;
+    color: #555;
+    padding: 2px 2px 0;
+    min-height: 14px;
+  }
+
+  .custom-lookup-status.ok { color: #7ecb7e; }
+  .custom-lookup-status.err { color: #e05555; }
+  .custom-lookup-status.loading { color: #888; }
+
+  .suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0; right: 0;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    z-index: 100;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  }
+
+  .suggestion-item {
+    padding: 7px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #2a2a2a;
+    transition: background 0.1s;
+  }
+
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-item:hover { background: #2a2a2a; }
+
+  .suggestion-item .sug-name {
+    font-size: 0.78rem;
+    color: #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .suggestion-item .sug-macros {
+    font-size: 0.65rem;
+    color: #666;
+    margin-top: 2px;
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Keto Meal Planner</h1>
+  <span class="badge">Daily</span>
+  <button class="nav-btn" id="prev-day">&#8592;</button>
+  <span id="date-label">Today</span>
+  <button class="nav-btn" id="next-day" disabled>&#8594;</button>
+</header>
+
+<div class="main">
+
+  <!-- LEFT: library -->
+  <div class="library" id="library">
+
+    <div class="library-section">
+      <h3>Custom <span class="section-toggle">▾</span></h3>
+      <div class="section-body">
+      <div class="custom-card-builder">
+        <div class="custom-name-wrap">
+          <input class="custom-input" id="custom-name" type="text" placeholder="Type a food to look up…" maxlength="60" autocomplete="off">
+          <div class="suggestions-dropdown" id="suggestions-dropdown" style="display:none"></div>
+        </div>
+        <div class="custom-lookup-status" id="custom-lookup-status"></div>
+        <div class="custom-row" id="serving-size-row" style="display:none">
+          <div class="custom-field" style="flex:2">
+            <label>Serving size (g)</label>
+            <input type="number" id="custom-serving" min="1" max="9999" placeholder="e.g. 28">
+          </div>
+          <div style="flex:3;display:flex;align-items:flex-end;padding-bottom:2px;font-size:0.65rem;color:#555;">
+            ← change to rescale macros
+          </div>
+        </div>
+        <input class="custom-input" id="custom-desc" type="text" placeholder="Serving / details (optional)" maxlength="80">
+        <div class="custom-row">
+          <div class="custom-field">
+            <label>Cal</label>
+            <input type="number" id="custom-cal" min="0" max="9999" placeholder="0">
+          </div>
+          <div class="custom-field">
+            <label>Carbs</label>
+            <input type="number" id="custom-carb" min="0" max="999" placeholder="0">
+          </div>
+          <div class="custom-field">
+            <label>Pro</label>
+            <input type="number" id="custom-protein" min="0" max="999" placeholder="0">
+          </div>
+          <div class="custom-field">
+            <label>Fat</label>
+            <input type="number" id="custom-fat" min="0" max="999" placeholder="0">
+          </div>
+        </div>
+        <button class="custom-add-btn" id="custom-add-btn">+ Add to Library</button>
+      </div>
+      <div id="custom-cards-list"></div>
+      </div><!-- /section-body -->
+    </div>
+
+    <div class="library-section">
+      <h3>Breakfast <span class="section-toggle">▾</span></h3>
+      <div class="section-body"><!-- cards injected by JS --></div>
+    </div>
+
+    <div class="library-section">
+      <h3>Snacks <span class="section-toggle">▾</span></h3>
+      <div class="section-body"></div>
+    </div>
+
+    <div class="library-section">
+      <h3>Meals <span class="section-toggle">▾</span></h3>
+      <div class="section-body"></div>
+    </div>
+
+  </div>
+
+  <!-- CENTER: day planner -->
+  <div class="planner">
+
+    <div id="rec-banner" style="display:none">
+      <span class="rec-icon">💡</span>
+      <span class="rec-text" id="rec-text"></span>
+      <button class="rec-dismiss" id="rec-dismiss">×</button>
+    </div>
+
+    <button id="copy-yesterday-btn">↑ Copy yesterday's plan</button>
+
+    <div class="planner-section">
+      <div class="planner-section-header">
+        <span class="title section-title-breakfast">Breakfast</span>
+        <span class="section-total" id="breakfast-total"></span>
+      </div>
+      <div class="drop-zone" id="zone-breakfast" data-zone="breakfast">
+        <div class="empty-hint">Drag breakfast items here</div>
+      </div>
+    </div>
+
+    <div class="planner-section">
+      <div class="planner-section-header">
+        <span class="title section-title-snacks">Snacks</span>
+        <span class="section-total" id="snacks-total"></span>
+      </div>
+      <div class="drop-zone" id="zone-snacks" data-zone="snacks">
+        <div class="empty-hint">Drag snacks here</div>
+      </div>
+    </div>
+
+    <div class="planner-section">
+      <div class="planner-section-header">
+        <span class="title section-title-meals">Meals</span>
+        <span class="section-total" id="meals-total"></span>
+      </div>
+      <div class="drop-zone" id="zone-meals" data-zone="meals">
+        <div class="empty-hint">Drag meals here</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: sidebar totals -->
+  <div class="sidebar">
+    <div>
+      <h3>Today's Totals</h3>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <div class="stat-block">
+          <div class="stat-label">Calories</div>
+          <div class="stat-value calories" id="total-cal">0</div>
+          <div class="stat-planned" id="planned-cal"></div>
+          <div class="stat-unit">kcal</div>
+          <div class="goal-bar"><div class="goal-bar-fill calories" id="bar-cal" style="width:0%"></div></div>
+          <div class="goal-text" id="goal-cal-text">of 1800 goal</div>
+        </div>
+
+        <div class="stat-block">
+          <div class="stat-label">Net Carbs</div>
+          <div class="stat-value carbs" id="total-carb">0</div>
+          <div class="stat-planned" id="planned-carb"></div>
+          <div class="stat-unit">grams</div>
+          <div class="goal-bar"><div class="goal-bar-fill carbs" id="bar-carb" style="width:0%"></div></div>
+          <div class="goal-text" id="goal-carb-text">of 20g limit</div>
+        </div>
+
+        <div class="stat-block">
+          <div class="stat-label">Protein</div>
+          <div class="stat-value protein" id="total-protein">0</div>
+          <div class="stat-unit">grams</div>
+        </div>
+
+        <div class="stat-block">
+          <div class="stat-label">Fat</div>
+          <div class="stat-value fat" id="total-fat">0</div>
+          <div class="stat-unit">grams</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <h3>Breakdown</h3>
+      <div class="breakdown-list" id="breakdown-list">
+        <div style="font-size:0.72rem;color:#333;">Nothing added yet</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <h3>History</h3>
+      <div class="history-list" id="history-list">
+        <div style="font-size:0.7rem;color:#333;">No history yet</div>
+      </div>
+    </div>
+
+    <button class="reset-btn" id="reset-btn">Clear Day</button>
+  </div>
+
+</div>
+
+<script>
+// ─── Food Database ─────────────────────────────────────────────────────────────
+// cal, carb (net), protein, fat all per serving
+
+const FOODS = [
+  // BREAKFAST
+  {
+    id: 'b-standard',
+    name: 'Standard Breakfast',
+    type: 'breakfast',
+    zone: 'breakfast',
+    desc: '2–3 eggs · 2 oz smoked salmon · 1 tbsp cream cheese · capers',
+    cal: 380, carb: 2, protein: 35, fat: 24,
+    customizable: false,
+  },
+  {
+    id: 'b-eggs-2',
+    name: '2 Eggs (any style)',
+    type: 'breakfast',
+    zone: 'breakfast',
+    desc: 'Two large eggs',
+    cal: 140, carb: 1, protein: 12, fat: 10,
+    customizable: false,
+  },
+  {
+    id: 'b-eggs-3',
+    name: '3 Eggs (any style)',
+    type: 'breakfast',
+    zone: 'breakfast',
+    desc: 'Three large eggs',
+    cal: 210, carb: 1, protein: 18, fat: 15,
+    customizable: false,
+  },
+  {
+    id: 'b-salmon',
+    name: 'Smoked Salmon',
+    type: 'breakfast',
+    zone: 'breakfast',
+    desc: '2 oz smoked salmon',
+    cal: 65, carb: 0, protein: 10, fat: 2,
+    customizable: false,
+  },
+  {
+    id: 'b-cream-cheese',
+    name: 'Cream Cheese + Capers',
+    type: 'breakfast',
+    zone: 'breakfast',
+    desc: '1 tbsp cream cheese with capers',
+    cal: 50, carb: 1, protein: 1, fat: 5,
+    customizable: false,
+  },
+
+  // DRINKS
+  {
+    id: 'd-almond-milk',
+    name: 'Unsweetened Vanilla Almond Milk',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '12 oz unsweetened vanilla almond milk',
+    cal: 45, carb: 2, protein: 2, fat: 4,
+    customizable: false,
+  },
+
+  // DRINKS / EXTRAS
+  {
+    id: 'e-daikon',
+    name: 'Daikon',
+    type: 'breakfast',
+    zone: 'breakfast',
+    desc: 'Side of daikon radish (fresh)',
+    cal: 10, carb: 1, protein: 0, fat: 0,
+    customizable: false,
+  },
+  {
+    id: 'e-matcha-latte',
+    name: 'Matcha Latte (home)',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '½ tsp matcha + 12 oz almond milk + splash of cream',
+    cal: 100, carb: 3, protein: 2, fat: 8,
+    customizable: false,
+  },
+  {
+    id: 'e-matcha-barista',
+    name: 'Matcha Latte (barista)',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '1 tsp matcha + 12 oz unsweetened almond milk',
+    cal: 55, carb: 3, protein: 2, fat: 3,
+    customizable: false,
+  },
+  {
+    id: 'e-string-cheese',
+    name: 'String Cheese',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '1 stick mozzarella string cheese',
+    cal: 80, carb: 1, protein: 6, fat: 5,
+    customizable: false,
+  },
+  {
+    id: 'e-almond-cream',
+    name: 'Almond Milk + Splash of Cream',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '12 oz almond milk + 1 tbsp heavy cream',
+    cal: 95, carb: 2, protein: 2, fat: 7,
+    customizable: false,
+  },
+  {
+    id: 'e-walnuts',
+    name: 'Small Handful of Walnuts',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '~1 oz walnuts (~14 halves)',
+    cal: 185, carb: 2, protein: 4, fat: 18,
+    customizable: false,
+  },
+  {
+    id: 'e-cheddar-2sl',
+    name: 'Tillamook Sharp Cheddar (2 slices)',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '2 slices Tillamook sharp cheddar (~2 oz)',
+    cal: 220, carb: 0, protein: 14, fat: 18,
+    customizable: false,
+  },
+  {
+    id: 'e-roast-prosciutto',
+    name: 'Roast Beef + Prosciutto',
+    type: 'meal',
+    zone: 'meals',
+    desc: '2 oz roast beef + 1 oz prosciutto',
+    cal: 160, carb: 1, protein: 22, fat: 7,
+    customizable: false,
+  },
+  {
+    id: 'e-chicken-salmon-cc',
+    name: 'Chicken + Salmon + Cream Cheese',
+    type: 'meal',
+    zone: 'meals',
+    desc: 'Chicken breast, smoked salmon, cream cheese',
+    cal: 285, carb: 2, protein: 38, fat: 13,
+    customizable: false,
+  },
+
+  // SNACKS
+  {
+    id: 's-hb-eggs',
+    name: '2 Hard-Boiled Eggs',
+    type: 'snack',
+    zone: 'snacks',
+    desc: 'Two hard-boiled eggs',
+    cal: 140, carb: 1, protein: 12, fat: 10,
+    customizable: false,
+  },
+  {
+    id: 's-turkey-string',
+    name: 'Turkey + String Cheese',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '2 slices turkey deli meat · 1 string cheese',
+    cal: 130, carb: 2, protein: 16, fat: 6,
+    customizable: false,
+  },
+  {
+    id: 's-deli-turkey',
+    name: 'Deli Turkey (2 slices)',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '2 slices deli turkey breast',
+    cal: 50, carb: 1, protein: 10, fat: 0.5,
+    customizable: false,
+  },
+  {
+    id: 's-cheese-crisps',
+    name: 'Cheese Crisps',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '1 oz baked cheddar crisps',
+    cal: 110, carb: 1, protein: 7, fat: 8,
+    customizable: false,
+  },
+  {
+    id: 's-pepperoni',
+    name: 'Pepperoni + Cheese',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '1 oz pepperoni · 1 oz cheddar',
+    cal: 200, carb: 1, protein: 12, fat: 17,
+    customizable: false,
+  },
+  {
+    id: 's-avocado',
+    name: 'Half Avocado',
+    type: 'snack',
+    zone: 'snacks',
+    desc: 'Half avocado with salt',
+    cal: 120, carb: 2, protein: 1, fat: 11,
+    customizable: false,
+  },
+  {
+    id: 's-almonds',
+    name: 'Almonds (1 oz)',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '~23 almonds',
+    cal: 160, carb: 3, protein: 6, fat: 14,
+    customizable: false,
+  },
+  {
+    id: 's-pork-rinds',
+    name: 'Pork Rinds (1 oz)',
+    type: 'snack',
+    zone: 'snacks',
+    desc: 'Plain pork rinds',
+    cal: 150, carb: 0, protein: 17, fat: 9,
+    customizable: false,
+  },
+
+  // MEALS — customizable
+  {
+    id: 'm-chicken',
+    name: 'Chicken Breast',
+    type: 'meal',
+    zone: 'meals',
+    desc: 'Grilled or baked chicken breast',
+    cal: 165, carb: 0, protein: 31, fat: 4,
+    customizable: true,
+    unit: 'oz',
+    defaultQty: 6,
+    perOz: { cal: 165/6, carb: 0, protein: 31/6, fat: 4/6 },
+  },
+  {
+    id: 'm-steak',
+    name: 'Steak (ribeye/sirloin)',
+    type: 'meal',
+    zone: 'meals',
+    desc: 'Ribeye or sirloin, pan-seared',
+    cal: 270, carb: 0, protein: 26, fat: 18,
+    customizable: true,
+    unit: 'oz',
+    defaultQty: 6,
+    perOz: { cal: 270/6, carb: 0, protein: 26/6, fat: 18/6 },
+  },
+  {
+    id: 'm-ground-beef',
+    name: 'Ground Beef (80/20)',
+    type: 'meal',
+    zone: 'meals',
+    desc: '80/20 ground beef, cooked',
+    cal: 215, carb: 0, protein: 22, fat: 14,
+    customizable: true,
+    unit: 'oz',
+    defaultQty: 5,
+    perOz: { cal: 215/5, carb: 0, protein: 22/5, fat: 14/5 },
+  },
+  {
+    id: 'm-salmon',
+    name: 'Salmon Fillet',
+    type: 'meal',
+    zone: 'meals',
+    desc: 'Pan-seared or baked salmon',
+    cal: 208, carb: 0, protein: 28, fat: 10,
+    customizable: true,
+    unit: 'oz',
+    defaultQty: 6,
+    perOz: { cal: 208/6, carb: 0, protein: 28/6, fat: 10/6 },
+  },
+  {
+    id: 'm-salad',
+    name: 'Keto Salad',
+    type: 'meal',
+    zone: 'meals',
+    desc: 'Kale · Mexican cheese · red onion · Kalamata olives · olive oil, ACV, lemon, garlic dressing',
+    cal: 402, carb: 8, protein: 10, fat: 32,
+    customizable: true,
+    unit: 'serving',
+    defaultQty: 1,
+    perOz: null,
+    sizes: [
+      { label: 'Small',  cal: 300, carb: 6,  protein: 8,  fat: 24 },
+      { label: 'Medium', cal: 402, carb: 8,  protein: 10, fat: 32 },
+      { label: 'Large',  cal: 500, carb: 10, protein: 13, fat: 40 },
+    ],
+  },
+  {
+    id: 'm-bpc',
+    name: 'Bulletproof Coffee',
+    type: 'meal',
+    zone: 'meals',
+    desc: 'Coffee + 1 tbsp butter + 1 tbsp MCT oil',
+    cal: 230, carb: 0, protein: 0, fat: 26,
+    customizable: false,
+  },
+  {
+    id: 'm-tuna',
+    name: 'Tuna Salad',
+    type: 'meal',
+    zone: 'meals',
+    desc: '5 oz tuna · 1 tbsp mayo · celery',
+    cal: 200, carb: 1, protein: 30, fat: 8,
+    customizable: false,
+  },
+];
+
+// ─── State ─────────────────────────────────────────────────────────────────────
+let placed = []; // { instanceId, foodId, qty, sizeIndex, eaten }
+let dragFoodId = null;
+let instanceCounter = 0;
+
+// Date helpers
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+function dateStrFromOffset(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+function offsetFromDateStr(ds) {
+  const today = new Date(todayStr());
+  const target = new Date(ds);
+  return Math.round((target - today) / 86400000);
+}
+
+let currentDate = todayStr();
+
+// ─── Build library ─────────────────────────────────────────────────────────────
+function buildLibrary() {
+  const sections = document.querySelectorAll('.library-section');
+  // sections[0] = Custom, [1] = Breakfast, [2] = Snacks, [3] = Meals
+  const bSection = sections[1].querySelector('.section-body');
+  const sSection = sections[2].querySelector('.section-body');
+  const mSection = sections[3].querySelector('.section-body');
+
+  FOODS.forEach(food => {
+    const wrap = makeLibraryCardWrap(food);
+    if (food.type === 'breakfast') bSection.appendChild(wrap);
+    else if (food.type === 'snack') sSection.appendChild(wrap);
+    else mSection.appendChild(wrap);
+  });
+
+  // collapsible section headers
+  document.querySelectorAll('.library-section h3').forEach(h3 => {
+    h3.addEventListener('click', () => {
+      h3.closest('.library-section').classList.toggle('collapsed');
+    });
+  });
+}
+
+function makeLibraryCardWrap(food) {
+  const wrap = document.createElement('div');
+  wrap.className = 'food-card-wrap';
+
+  const card = makeLibraryCard(food);
+  wrap.appendChild(card);
+
+  // Edit button
+  const edit = document.createElement('button');
+  edit.className = 'card-edit';
+  edit.title = 'Edit';
+  edit.textContent = '✎';
+  edit.addEventListener('click', e => {
+    e.stopPropagation();
+    openEditForm(wrap, food);
+  });
+  wrap.appendChild(edit);
+
+  // Delete button
+  const del = document.createElement('button');
+  del.className = 'card-delete';
+  del.title = 'Remove from library';
+  del.textContent = '×';
+  del.addEventListener('click', e => {
+    e.stopPropagation();
+    const idx = FOODS.findIndex(f => f.id === food.id);
+    if (idx !== -1) FOODS.splice(idx, 1);
+    wrap.remove();
+    saveState();
+  });
+  wrap.appendChild(del);
+
+  return wrap;
+}
+
+function openEditForm(wrap, food) {
+  // If a form is already open in this wrap, close it
+  const existing = wrap.querySelector('.card-edit-form');
+  if (existing) { existing.remove(); return; }
+
+  const form = document.createElement('div');
+  form.className = 'card-edit-form';
+  form.innerHTML = `
+    <input type="text"   class="ef-name" value="${food.name}" placeholder="Name">
+    <input type="text"   class="ef-desc" value="${food.desc}" placeholder="Details / serving">
+    <div class="card-edit-macro-row">
+      <div class="ef"><label>Cal</label><input type="number" class="ef-cal"  value="${food.cal}"     min="0"></div>
+      <div class="ef"><label>Carbs</label><input type="number" class="ef-carb" value="${food.carb}"    min="0" step="0.1"></div>
+      <div class="ef"><label>Pro</label><input type="number" class="ef-pro"  value="${food.protein}" min="0" step="0.1"></div>
+      <div class="ef"><label>Fat</label><input type="number" class="ef-fat"  value="${food.fat}"     min="0" step="0.1"></div>
+    </div>
+    <div class="card-edit-actions">
+      <button class="card-edit-save">Save</button>
+      <button class="card-edit-cancel">Cancel</button>
+    </div>
+  `;
+
+  form.querySelector('.card-edit-cancel').addEventListener('click', () => form.remove());
+
+  form.querySelector('.card-edit-save').addEventListener('click', () => {
+    food.name    = form.querySelector('.ef-name').value.trim() || food.name;
+    food.desc    = form.querySelector('.ef-desc').value.trim();
+    food.cal     = parseFloat(form.querySelector('.ef-cal').value)  || 0;
+    food.carb    = parseFloat(form.querySelector('.ef-carb').value) || 0;
+    food.protein = parseFloat(form.querySelector('.ef-pro').value)  || 0;
+    food.fat     = parseFloat(form.querySelector('.ef-fat').value)  || 0;
+
+    // Refresh the library card display
+    const oldCard = wrap.querySelector('.food-card');
+    const newCard = makeLibraryCard(food);
+    wrap.replaceChild(newCard, oldCard);
+
+    // Refresh any placed instances of this food
+    placed.filter(p => p.foodId === food.id).forEach(p => {
+      refreshMacroChips(p.instanceId);
+      const nameEl = document.querySelector(`[data-instance-id="${p.instanceId}"] .card-name`);
+      const descEl = document.querySelector(`[data-instance-id="${p.instanceId}"] .card-desc`);
+      if (nameEl) nameEl.textContent = food.name;
+      if (descEl) descEl.textContent = food.desc;
+    });
+
+    updateTotals();
+    saveState();
+    form.remove();
+  });
+
+  wrap.appendChild(form);
+  form.querySelector('.ef-name').focus();
+}
+
+function makeLibraryCard(food) {
+  const div = document.createElement('div');
+  div.className = `food-card type-${food.type}`;
+  div.draggable = true;
+  div.dataset.foodId = food.id;
+
+  div.innerHTML = `
+    <div class="card-text">
+      <div class="card-name">${food.name}</div>
+      <div class="card-desc">${food.desc}</div>
+    </div>
+    <div class="card-macros">
+      <span class="macro-chip cal">${food.cal} kcal</span>
+      <span class="macro-chip carb">${food.carb}g carb</span>
+    </div>
+  `;
+
+  div.addEventListener('dragstart', e => {
+    dragFoodId = food.id;
+    div.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+
+  div.addEventListener('dragend', () => {
+    dragFoodId = null;
+    div.classList.remove('dragging');
+  });
+
+  return div;
+}
+
+// ─── Drop zones ────────────────────────────────────────────────────────────────
+function setupDropZones() {
+  document.querySelectorAll('.drop-zone').forEach(zone => {
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      zone.classList.add('drag-over');
+    });
+
+    zone.addEventListener('dragleave', e => {
+      if (!zone.contains(e.relatedTarget)) {
+        zone.classList.remove('drag-over');
+      }
+    });
+
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (!dragFoodId) return;
+
+      const food = FOODS.find(f => f.id === dragFoodId);
+      if (!food) return;
+
+      // Only allow correct zone (loose check — meals can go anywhere)
+      const zoneId = zone.dataset.zone;
+      if (food.zone !== zoneId && !(food.type === 'meal' && zoneId === 'meals')) {
+        // still allow drops anywhere for flexibility
+      }
+
+      const instanceId = ++instanceCounter;
+      placed.push({
+        instanceId,
+        foodId: food.id,
+        qty: food.defaultQty || 1,
+        sizeIndex: 1,
+        eaten: true,
+      });
+      updateCopyYesterdayBtn();
+
+      renderPlacedCard(zone, food, instanceId);
+      updateTotals();
+      saveState();
+    });
+  });
+}
+
+// ─── Placed cards ──────────────────────────────────────────────────────────────
+function renderPlacedCard(zone, food, instanceId) {
+  // Remove empty hint
+  const hint = zone.querySelector('.empty-hint');
+  if (hint) hint.remove();
+
+  const div = document.createElement('div');
+  div.className = `placed-card type-${food.type}`;
+  div.dataset.instanceId = instanceId;
+
+  const macros = getMacrosForInstance(instanceId);
+
+  let fieldsHtml = '';
+  if (food.customizable) {
+    if (food.perOz) {
+      const inst = placed.find(p => p.instanceId === instanceId);
+      fieldsHtml = `
+        <div class="meal-fields">
+          <div class="meal-field-row">
+            <label>Amount</label>
+            <input type="number" min="1" max="24" step="0.5" value="${inst.qty}" data-iid="${instanceId}" class="qty-input">
+            <span style="color:#555">${food.unit}</span>
+          </div>
+        </div>`;
+    } else if (food.sizes) {
+      const inst = placed.find(p => p.instanceId === instanceId);
+      const opts = food.sizes.map((s, i) => `<option value="${i}" ${i === inst.sizeIndex ? 'selected' : ''}>${s.label}</option>`).join('');
+      fieldsHtml = `
+        <div class="meal-fields">
+          <div class="meal-field-row">
+            <label>Size</label>
+            <select data-iid="${instanceId}" class="size-select">${opts}</select>
+          </div>
+        </div>`;
+    }
+  }
+
+  const inst0 = placed.find(p => p.instanceId === instanceId);
+  const isEaten = inst0 ? inst0.eaten !== false : true;
+  if (!isEaten) div.classList.add('not-eaten');
+
+  div.innerHTML = `
+    <input type="checkbox" class="eaten-check" ${isEaten ? 'checked' : ''} title="Eaten">
+    <button class="remove-btn" data-iid="${instanceId}" title="Remove">×</button>
+    <button class="edit-placed-btn" data-iid="${instanceId}" title="Edit">✎</button>
+    <div class="card-name">${food.name}</div>
+    <div class="card-desc">${food.desc}</div>
+    <div class="card-macros" id="macros-${instanceId}">
+      ${macroChips(macros)}
+    </div>
+    ${fieldsHtml}
+  `;
+
+  zone.appendChild(div);
+
+  // wire up eaten checkbox
+  const eatenCheck = div.querySelector('.eaten-check');
+  eatenCheck.addEventListener('change', () => {
+    const inst = placed.find(p => p.instanceId === instanceId);
+    if (inst) {
+      inst.eaten = eatenCheck.checked;
+      div.classList.toggle('not-eaten', !eatenCheck.checked);
+      updateTotals();
+      saveState();
+    }
+  });
+
+  // wire up controls
+  const qtyInput = div.querySelector('.qty-input');
+  if (qtyInput) {
+    qtyInput.addEventListener('input', () => {
+      const inst = placed.find(p => p.instanceId === instanceId);
+      if (inst) {
+        inst.qty = parseFloat(qtyInput.value) || 1;
+        refreshMacroChips(instanceId);
+        updateTotals();
+        saveState();
+      }
+    });
+  }
+
+  const sizeSelect = div.querySelector('.size-select');
+  if (sizeSelect) {
+    sizeSelect.addEventListener('change', () => {
+      const inst = placed.find(p => p.instanceId === instanceId);
+      if (inst) {
+        inst.sizeIndex = parseInt(sizeSelect.value);
+        refreshMacroChips(instanceId);
+        updateTotals();
+        saveState();
+      }
+    });
+  }
+
+  div.querySelector('.remove-btn').addEventListener('click', () => {
+    placed = placed.filter(p => p.instanceId !== instanceId);
+    div.remove();
+    if (!zone.querySelector('.placed-card')) {
+      const hint = document.createElement('div');
+      hint.className = 'empty-hint';
+      hint.textContent = zone.dataset.zone === 'breakfast' ? 'Drag breakfast items here'
+        : zone.dataset.zone === 'snacks' ? 'Drag snacks here' : 'Drag meals here';
+      zone.appendChild(hint);
+    }
+    updateTotals();
+    saveState();
+    updateCopyYesterdayBtn();
+  });
+
+  div.querySelector('.edit-placed-btn').addEventListener('click', () => {
+    // Toggle inline edit form
+    const existing = div.querySelector('.placed-edit-form');
+    if (existing) { existing.remove(); return; }
+
+    const inst = placed.find(p => p.instanceId === instanceId);
+    const m = getMacrosForInstance(instanceId);
+
+    const form = document.createElement('div');
+    form.className = 'placed-edit-form card-edit-form';
+    form.innerHTML = `
+      <input type="text"   class="pef-name" value="${food.name}" placeholder="Name">
+      <input type="text"   class="pef-desc" value="${food.desc}" placeholder="Details">
+      <div class="card-edit-macro-row">
+        <div class="ef"><label>Cal</label>  <input type="number" class="pef-cal"  value="${Math.round(m.cal)}"     min="0"></div>
+        <div class="ef"><label>Carbs</label><input type="number" class="pef-carb" value="${Math.round(m.carb)}"    min="0" step="0.1"></div>
+        <div class="ef"><label>Pro</label>  <input type="number" class="pef-pro"  value="${Math.round(m.protein)}" min="0" step="0.1"></div>
+        <div class="ef"><label>Fat</label>  <input type="number" class="pef-fat"  value="${Math.round(m.fat)}"     min="0" step="0.1"></div>
+      </div>
+      <div class="card-edit-actions">
+        <button class="card-edit-save">Save</button>
+        <button class="card-edit-cancel">Cancel</button>
+      </div>
+    `;
+
+    form.querySelector('.card-edit-cancel').addEventListener('click', () => form.remove());
+
+    form.querySelector('.card-edit-save').addEventListener('click', () => {
+      const newName = form.querySelector('.pef-name').value.trim() || food.name;
+      const newDesc = form.querySelector('.pef-desc').value.trim();
+      const newCal  = parseFloat(form.querySelector('.pef-cal').value)  || 0;
+      const newCarb = parseFloat(form.querySelector('.pef-carb').value) || 0;
+      const newPro  = parseFloat(form.querySelector('.pef-pro').value)  || 0;
+      const newFat  = parseFloat(form.querySelector('.pef-fat').value)  || 0;
+
+      // Store overrides directly on the placed instance
+      inst.override = { name: newName, desc: newDesc, cal: newCal, carb: newCarb, protein: newPro, fat: newFat };
+
+      // Update displayed name/desc
+      div.querySelector('.card-name').textContent = newName;
+      div.querySelector('.card-desc').textContent = newDesc;
+
+      // Refresh macros
+      const macrosEl = document.getElementById(`macros-${instanceId}`);
+      if (macrosEl) macrosEl.innerHTML = macroChips({ cal: newCal, carb: newCarb, protein: newPro, fat: newFat });
+
+      updateTotals();
+      saveState();
+      form.remove();
+    });
+
+    div.appendChild(form);
+    form.querySelector('.pef-name').focus();
+  });
+}
+
+function macroChips(m) {
+  return `
+    <span class="macro-chip cal">${Math.round(m.cal)} kcal</span>
+    <span class="macro-chip carb">${Math.round(m.carb)}g carb</span>
+    <span class="macro-chip protein">${Math.round(m.protein)}g pro</span>
+    <span class="macro-chip fat">${Math.round(m.fat)}g fat</span>
+  `;
+}
+
+function refreshMacroChips(instanceId) {
+  const macros = getMacrosForInstance(instanceId);
+  const el = document.getElementById(`macros-${instanceId}`);
+  if (el) el.innerHTML = macroChips(macros);
+}
+
+function getMacrosForInstance(instanceId) {
+  const inst = placed.find(p => p.instanceId === instanceId);
+  if (!inst) return { cal: 0, carb: 0, protein: 0, fat: 0 };
+
+  // Use manual override if present
+  if (inst.override) return inst.override;
+
+  const food = FOODS.find(f => f.id === inst.foodId);
+  if (!food) return { cal: 0, carb: 0, protein: 0, fat: 0 };
+
+  if (food.perOz) {
+    const qty = inst.qty || food.defaultQty;
+    return {
+      cal: food.perOz.cal * qty,
+      carb: food.perOz.carb * qty,
+      protein: food.perOz.protein * qty,
+      fat: food.perOz.fat * qty,
+    };
+  }
+
+  if (food.sizes) {
+    const s = food.sizes[inst.sizeIndex ?? 1];
+    return { cal: s.cal, carb: s.carb, protein: s.protein, fat: s.fat };
+  }
+
+  return { cal: food.cal, carb: food.carb, protein: food.protein, fat: food.fat };
+}
+
+// ─── Totals ────────────────────────────────────────────────────────────────────
+const CAL_GOAL = 1800;
+const CARB_LIMIT = 20;
+
+function updateTotals() {
+  let totCal = 0, totCarb = 0, totPro = 0, totFat = 0;
+  let planCal = 0, planCarb = 0;
+  const breakdownItems = [];
+
+  placed.forEach(inst => {
+    const food = FOODS.find(f => f.id === inst.foodId);
+    if (!food) return;
+    const m = getMacrosForInstance(inst.instanceId);
+    planCal  += m.cal;
+    planCarb += m.carb;
+    if (inst.eaten !== false) {
+      totCal  += m.cal;
+      totCarb += m.carb;
+      totPro  += m.protein;
+      totFat  += m.fat;
+    }
+    breakdownItems.push({ name: food.name, cal: m.cal, carb: m.carb, eaten: inst.eaten !== false });
+  });
+
+  document.getElementById('total-cal').textContent = Math.round(totCal);
+  document.getElementById('total-carb').textContent = Math.round(totCarb);
+  document.getElementById('total-protein').textContent = Math.round(totPro);
+  document.getElementById('total-fat').textContent = Math.round(totFat);
+
+  const plannedCalEl = document.getElementById('planned-cal');
+  const plannedCarbEl = document.getElementById('planned-carb');
+  if (Math.round(planCal) !== Math.round(totCal)) {
+    plannedCalEl.textContent = `of ${Math.round(planCal)} planned`;
+  } else {
+    plannedCalEl.textContent = '';
+  }
+  if (Math.round(planCarb) !== Math.round(totCarb)) {
+    plannedCarbEl.textContent = `of ${Math.round(planCarb)}g planned`;
+  } else {
+    plannedCarbEl.textContent = '';
+  }
+
+  const calPct = Math.min(100, (totCal / CAL_GOAL) * 100);
+  const carbPct = Math.min(100, (totCarb / CARB_LIMIT) * 100);
+  document.getElementById('bar-cal').style.width = calPct + '%';
+  document.getElementById('bar-carb').style.width = carbPct + '%';
+  document.getElementById('goal-cal-text').textContent = `of ${CAL_GOAL} goal`;
+  document.getElementById('goal-carb-text').textContent = `of ${CARB_LIMIT}g limit`;
+
+  // Section totals
+  updateSectionTotal('breakfast', 'breakfast-total');
+  updateSectionTotal('snacks', 'snacks-total');
+  updateSectionTotal('meals', 'meals-total');
+
+  // Breakdown
+  const bl = document.getElementById('breakdown-list');
+  if (breakdownItems.length === 0) {
+    bl.innerHTML = '<div style="font-size:0.72rem;color:#333;">Nothing added yet</div>';
+  } else {
+    bl.innerHTML = breakdownItems.map(item => `
+      <div class="breakdown-row">
+        <span class="br-name">${item.name}</span>
+        <span class="br-val">${Math.round(item.cal)}c</span>
+      </div>
+    `).join('');
+  }
+}
+
+function updateSectionTotal(zoneName, elId) {
+  const zone = document.getElementById(`zone-${zoneName}`);
+  const cards = zone.querySelectorAll('.placed-card');
+  let cal = 0, carb = 0;
+  cards.forEach(card => {
+    const iid = parseInt(card.dataset.instanceId);
+    const m = getMacrosForInstance(iid);
+    cal += m.cal;
+    carb += m.carb;
+  });
+  const el = document.getElementById(elId);
+  if (cards.length > 0) {
+    el.textContent = `${Math.round(cal)} kcal · ${Math.round(carb)}g carb`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+// ─── Persistence ───────────────────────────────────────────────────────────────
+function saveState() {
+  // Save custom foods (anything not in the original FOODS list)
+  const customFoods = FOODS.filter(f => f.id.startsWith('custom-'));
+  localStorage.setItem('keto-custom-foods', JSON.stringify(customFoods));
+  // Save current day's plan under per-day key
+  localStorage.setItem(`keto-day-${currentDate}`, JSON.stringify({ placed, instanceCounter }));
+}
+
+function loadCustomFoods() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('keto-custom-foods') || '[]');
+    const list  = document.getElementById('custom-cards-list');
+    saved.forEach(food => {
+      FOODS.push(food);
+      list.appendChild(makeLibraryCardWrap(food));
+      // keep counter ahead of any saved ids
+      const num = parseInt(food.id.replace('custom-', '')) || 0;
+      if (num >= customIdCounter) customIdCounter = num + 1;
+    });
+  } catch {}
+}
+
+function loadPlan() {
+  // Clear existing placed items from the DOM
+  placed = [];
+  ['breakfast', 'snacks', 'meals'].forEach(zoneName => {
+    const el = document.getElementById(`zone-${zoneName}`);
+    el.innerHTML = '';
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = zoneName === 'breakfast' ? 'Drag breakfast items here'
+      : zoneName === 'snacks' ? 'Drag snacks here' : 'Drag meals here';
+    el.appendChild(hint);
+  });
+
+  try {
+    // Try new per-day key first, fall back to old flat keys for migration
+    const dayData = JSON.parse(localStorage.getItem(`keto-day-${currentDate}`) || 'null');
+    let savedPlaced, savedCounter;
+    if (dayData) {
+      savedPlaced  = dayData.placed || [];
+      savedCounter = dayData.instanceCounter || 0;
+    } else if (currentDate === todayStr()) {
+      // One-time migration from old flat keys
+      savedPlaced  = JSON.parse(localStorage.getItem('keto-placed') || '[]');
+      savedCounter = parseInt(localStorage.getItem('keto-instance-counter') || '0');
+    } else {
+      savedPlaced  = [];
+      savedCounter = 0;
+    }
+    instanceCounter = savedCounter;
+    savedPlaced.forEach(inst => {
+      const food = FOODS.find(f => f.id === inst.foodId);
+      if (!food) return;
+      const zone = document.getElementById(`zone-${food.zone}`);
+      if (!zone) return;
+      if (inst.eaten === undefined) inst.eaten = true;
+      placed.push(inst);
+      renderPlacedCard(zone, food, inst.instanceId);
+    });
+    updateTotals();
+  } catch {}
+}
+
+// ─── Reset ─────────────────────────────────────────────────────────────────────
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (!confirm('Clear all items from today\'s plan?')) return;
+  placed = [];
+  instanceCounter = 0;
+  ['breakfast', 'snacks', 'meals'].forEach(zone => {
+    const el = document.getElementById(`zone-${zone}`);
+    el.innerHTML = '';
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = zone === 'breakfast' ? 'Drag breakfast items here'
+      : zone === 'snacks' ? 'Drag snacks here' : 'Drag meals here';
+    el.appendChild(hint);
+  });
+  updateTotals();
+  saveState();
+  updateCopyYesterdayBtn();
+});
+
+// ─── Custom cards + USDA food lookup ──────────────────────────────────────────
+let customIdCounter = 0;
+let lookupTimer = null;
+const USDA_KEY = 'OzcaUbyvf8Z0GadM6ckrLcaAAasIwsXfk3Eb1v9u';
+
+const customNameEl    = document.getElementById('custom-name');
+const customDescEl    = document.getElementById('custom-desc');
+const customCalEl     = document.getElementById('custom-cal');
+const customCarbEl    = document.getElementById('custom-carb');
+const customProteinEl = document.getElementById('custom-protein');
+const customFatEl     = document.getElementById('custom-fat');
+const statusEl        = document.getElementById('custom-lookup-status');
+const dropdownEl      = document.getElementById('suggestions-dropdown');
+
+function getNutrient(nutrients, ids) {
+  for (const id of ids) {
+    const n = nutrients.find(n => n.nutrientId === id || n.nutrientNumber === String(id));
+    if (n && n.value != null) return Math.round(n.value * 10) / 10;
+  }
+  return 0;
+}
+
+function showSuggestions(items) {
+  if (!items.length) { dropdownEl.style.display = 'none'; return; }
+  dropdownEl.innerHTML = '';
+  items.slice(0, 6).forEach(item => {
+    const n = item.foodNutrients || [];
+
+    // USDA always returns nutrients per 100g regardless of food type.
+    // Scale down to actual serving size when available.
+    const servingG = item.servingSize || 100;
+    const unit     = item.servingSizeUnit || 'g';
+    const scale    = servingG / 100;
+
+    const cal100  = getNutrient(n, [1008, 2047, 2048]);
+    const carb100 = getNutrient(n, [1005]);
+    const prot100 = getNutrient(n, [1003]);
+    const fat100  = getNutrient(n, [1004]);
+
+    const cal  = Math.round(cal100  * scale);
+    const carb = Math.round(carb100 * scale * 10) / 10;
+    const prot = Math.round(prot100 * scale * 10) / 10;
+    const fat  = Math.round(fat100  * scale * 10) / 10;
+    const servingLabel = `${servingG}${unit}`;
+
+    const div = document.createElement('div');
+    div.className = 'suggestion-item';
+    div.innerHTML = `
+      <div class="sug-name">${item.description}</div>
+      <div class="sug-macros">${cal} kcal · ${carb}g carb · ${prot}g pro · ${fat}g fat &nbsp;·&nbsp; per ${servingLabel}</div>
+    `;
+    div.addEventListener('mousedown', e => {
+      e.preventDefault();
+      // Store per-gram base values for rescaling
+      window._per100g = { cal: cal100, carb: carb100, prot: prot100, fat: fat100 };
+
+      customNameEl.value    = item.description;
+      customDescEl.value    = `per ${servingLabel}`;
+      customCalEl.value     = cal;
+      customCarbEl.value    = carb;
+      customProteinEl.value = prot;
+      customFatEl.value     = fat;
+
+      const servingInput = document.getElementById('custom-serving');
+      servingInput.value = servingG;
+      document.getElementById('serving-size-row').style.display = 'flex';
+
+      statusEl.textContent  = '✓ Macros filled — adjust serving size if needed';
+      statusEl.className    = 'custom-lookup-status ok';
+      dropdownEl.style.display = 'none';
+    });
+    dropdownEl.appendChild(div);
+  });
+  dropdownEl.style.display = 'block';
+}
+
+async function lookupFood(query) {
+  statusEl.textContent = 'Looking up…';
+  statusEl.className   = 'custom-lookup-status loading';
+  try {
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=6&api_key=${USDA_KEY}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.foods && data.foods.length) {
+      statusEl.textContent = 'Pick a match below (or edit the numbers):';
+      statusEl.className   = 'custom-lookup-status';
+      showSuggestions(data.foods);
+    } else {
+      statusEl.textContent = 'No results — enter macros manually.';
+      statusEl.className   = 'custom-lookup-status err';
+      dropdownEl.style.display = 'none';
+    }
+  } catch {
+    statusEl.textContent = 'Lookup failed — enter macros manually.';
+    statusEl.className   = 'custom-lookup-status err';
+    dropdownEl.style.display = 'none';
+  }
+}
+
+customNameEl.addEventListener('input', () => {
+  clearTimeout(lookupTimer);
+  const q = customNameEl.value.trim();
+  if (q.length < 2) {
+    statusEl.textContent = '';
+    dropdownEl.style.display = 'none';
+    return;
+  }
+  lookupTimer = setTimeout(() => lookupFood(q), 450);
+});
+
+customNameEl.addEventListener('blur', () => {
+  setTimeout(() => { dropdownEl.style.display = 'none'; }, 150);
+});
+
+customNameEl.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { dropdownEl.style.display = 'none'; }
+  if (e.key === 'Enter')  { dropdownEl.style.display = 'none'; document.getElementById('custom-add-btn').click(); }
+});
+
+document.getElementById('custom-serving').addEventListener('input', () => {
+  if (!window._per100g) return;
+  const g = parseFloat(document.getElementById('custom-serving').value);
+  if (!g || g <= 0) return;
+  const s = g / 100;
+  const b = window._per100g;
+  customCalEl.value     = Math.round(b.cal  * s);
+  customCarbEl.value    = Math.round(b.carb * s * 10) / 10;
+  customProteinEl.value = Math.round(b.prot * s * 10) / 10;
+  customFatEl.value     = Math.round(b.fat  * s * 10) / 10;
+  customDescEl.value    = `per ${g}g`;
+});
+
+document.getElementById('custom-add-btn').addEventListener('click', () => {
+  const name = customNameEl.value.trim();
+  if (!name) { customNameEl.focus(); return; }
+
+  const cal  = parseFloat(customCalEl.value)     || 0;
+  const carb = parseFloat(customCarbEl.value)    || 0;
+  const prot = parseFloat(customProteinEl.value) || 0;
+  const fat  = parseFloat(customFatEl.value)     || 0;
+  const desc = customDescEl.value.trim() || '—';
+
+  const id   = 'custom-' + (++customIdCounter);
+  const food = { id, name, type: 'custom', zone: 'meals', desc, cal, carb, protein: prot, fat, customizable: false };
+  FOODS.push(food);
+
+  document.getElementById('custom-cards-list').appendChild(makeLibraryCardWrap(food));
+  saveState();
+
+  [customNameEl, customDescEl, customCalEl, customCarbEl, customProteinEl, customFatEl]
+    .forEach(el => { el.value = ''; });
+  document.getElementById('custom-serving').value = '';
+  document.getElementById('serving-size-row').style.display = 'none';
+  window._per100g = null;
+  statusEl.textContent = '';
+  statusEl.className   = 'custom-lookup-status';
+  customNameEl.focus();
+});
+
+// ─── Date navigation ───────────────────────────────────────────────────────────
+function loadDateLabel() {
+  const offset = offsetFromDateStr(currentDate);
+  const el = document.getElementById('date-label');
+  if (offset === 0) {
+    el.textContent = 'Today';
+  } else if (offset === -1) {
+    el.textContent = 'Yesterday';
+  } else {
+    const d = new Date(currentDate + 'T12:00:00');
+    el.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  document.getElementById('next-day').disabled = (currentDate === todayStr());
+}
+
+function navigateDay(offset) {
+  saveState();
+  const d = new Date(currentDate + 'T12:00:00');
+  d.setDate(d.getDate() + offset);
+  currentDate = d.toISOString().slice(0, 10);
+  // Don't allow going past today
+  if (currentDate > todayStr()) currentDate = todayStr();
+  loadDateLabel();
+  loadPlan();
+  updateCopyYesterdayBtn();
+  updateHistory();
+  showRecommendationBanner();
+}
+
+document.getElementById('prev-day').addEventListener('click', () => navigateDay(-1));
+document.getElementById('next-day').addEventListener('click', () => navigateDay(+1));
+
+// ─── History strip ─────────────────────────────────────────────────────────────
+function getActualsForDay(dateStr) {
+  try {
+    const dayData = JSON.parse(localStorage.getItem(`keto-day-${dateStr}`) || 'null');
+    if (!dayData || !dayData.placed) return null;
+    let cal = 0, carb = 0, protein = 0;
+    dayData.placed.forEach(inst => {
+      if (inst.eaten === false) return;
+      if (inst.override) {
+        cal += inst.override.cal || 0;
+        carb += inst.override.carb || 0;
+        protein += inst.override.protein || 0;
+      } else {
+        const food = FOODS.find(f => f.id === inst.foodId);
+        if (!food) return;
+        if (food.perOz) {
+          const qty = inst.qty || food.defaultQty;
+          cal  += food.perOz.cal * qty;
+          carb += food.perOz.carb * qty;
+          protein += food.perOz.protein * qty;
+        } else if (food.sizes) {
+          const s = food.sizes[inst.sizeIndex ?? 1];
+          cal  += s.cal; carb += s.carb; protein += s.protein;
+        } else {
+          cal  += food.cal; carb += food.carb; protein += food.protein;
+        }
+      }
+    });
+    return { cal: Math.round(cal), carb: Math.round(carb), protein: Math.round(protein), count: dayData.placed.length };
+  } catch { return null; }
+}
+
+function updateHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  let hasAny = false;
+  for (let i = 1; i <= 7; i++) {
+    const ds = dateStrFromOffset(-i);
+    if (ds === currentDate) continue;
+    const actuals = getActualsForDay(ds);
+    if (!actuals || actuals.count === 0) continue;
+    hasAny = true;
+    const d = new Date(ds + 'T12:00:00');
+    const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    row.innerHTML = `<span class="hr-date">${label}</span><span class="hr-vals">${actuals.cal} kcal · ${actuals.carb}g</span>`;
+    row.addEventListener('click', () => {
+      saveState();
+      currentDate = ds;
+      loadDateLabel();
+      loadPlan();
+      updateCopyYesterdayBtn();
+      updateHistory();
+      showRecommendationBanner();
+    });
+    list.appendChild(row);
+  }
+  if (!hasAny) {
+    list.innerHTML = '<div style="font-size:0.7rem;color:#333;">No history yet</div>';
+  }
+}
+
+// ─── Recommendation banner ─────────────────────────────────────────────────────
+function showRecommendationBanner() {
+  const banner = document.getElementById('rec-banner');
+  const recText = document.getElementById('rec-text');
+
+  const yesterdayStr = dateStrFromOffset(-1);
+  const yActuals = getActualsForDay(yesterdayStr);
+  if (!yActuals || yActuals.count === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const recs = [];
+  if (yActuals.carb > 18) recs.push('You hit your carb limit yesterday — consider fewer drinks or swapping kale for romaine.');
+  else if (yActuals.carb <= 12) recs.push('Plenty of carb headroom yesterday — you could add more veg today.');
+  if (yActuals.cal < 1500) recs.push('Under your calorie goal yesterday — add more fat today (avocado, butter, olive oil).');
+  else if (yActuals.cal > 1900) recs.push('Over your calorie goal — try trimming a portion or skipping the cheese snack.');
+  if (yActuals.protein < 80) recs.push('Protein was low — add an extra egg or more chicken today.');
+
+  if (recs.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  recText.innerHTML = recs.slice(0, 3).join('<br>');
+  banner.style.display = 'flex';
+}
+
+document.getElementById('rec-dismiss').addEventListener('click', () => {
+  document.getElementById('rec-banner').style.display = 'none';
+});
+
+// ─── Copy yesterday's plan ─────────────────────────────────────────────────────
+function updateCopyYesterdayBtn() {
+  const btn = document.getElementById('copy-yesterday-btn');
+  if (currentDate === todayStr() && placed.length === 0) {
+    btn.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+document.getElementById('copy-yesterday-btn').addEventListener('click', () => {
+  const yesterdayStr = dateStrFromOffset(-1);
+  try {
+    const dayData = JSON.parse(localStorage.getItem(`keto-day-${yesterdayStr}`) || 'null');
+    if (!dayData || !dayData.placed || dayData.placed.length === 0) {
+      alert('No plan found for yesterday.');
+      return;
+    }
+    // Clear current
+    placed = [];
+    instanceCounter = 0;
+    ['breakfast', 'snacks', 'meals'].forEach(zoneName => {
+      const el = document.getElementById(`zone-${zoneName}`);
+      el.innerHTML = '';
+      const hint = document.createElement('div');
+      hint.className = 'empty-hint';
+      hint.textContent = zoneName === 'breakfast' ? 'Drag breakfast items here'
+        : zoneName === 'snacks' ? 'Drag snacks here' : 'Drag meals here';
+      el.appendChild(hint);
+    });
+    // Re-add yesterday's items with new instanceIds and eaten=true
+    dayData.placed.forEach(oldInst => {
+      const food = FOODS.find(f => f.id === oldInst.foodId);
+      if (!food) return;
+      const zone = document.getElementById(`zone-${food.zone}`);
+      if (!zone) return;
+      const instanceId = ++instanceCounter;
+      const newInst = { ...oldInst, instanceId, eaten: true };
+      placed.push(newInst);
+      renderPlacedCard(zone, food, instanceId);
+    });
+    updateTotals();
+    saveState();
+    updateCopyYesterdayBtn();
+  } catch (e) {
+    console.error(e);
+  }
+});
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+buildLibrary();
+setupDropZones();
+loadCustomFoods();
+loadDateLabel();
+loadPlan();
+updateCopyYesterdayBtn();
+updateHistory();
+showRecommendationBanner();
+
+// Belt-and-suspenders: always save right before the page closes/reloads
+window.addEventListener('beforeunload', saveState);
+</script>
+</body>
+</html>
