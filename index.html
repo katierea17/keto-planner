@@ -624,6 +624,7 @@
   }
 
   .meal-field-row select { width: 100px; }
+  .servings-input { width: 52px !important; }
 
   .meal-field-row input:focus,
   .meal-field-row select:focus { border-color: #555; }
@@ -1355,6 +1356,56 @@ const FOODS = [
     ],
   },
   {
+    id: 'm-shrimp',
+    name: 'Shrimp',
+    type: 'meal',
+    zone: 'meals',
+    desc: '6 oz shrimp, cooked',
+    cal: 168, carb: 0, protein: 32, fat: 3,
+    customizable: true,
+    unit: 'oz',
+    defaultQty: 6,
+    perOz: { cal: 168/6, carb: 0, protein: 32/6, fat: 3/6 },
+  },
+  {
+    id: 'm-halibut',
+    name: 'Halibut Fillet',
+    type: 'meal',
+    zone: 'meals',
+    desc: '6 oz halibut fillet',
+    cal: 188, carb: 0, protein: 36, fat: 4,
+    customizable: true,
+    unit: 'oz',
+    defaultQty: 6,
+    perOz: { cal: 188/6, carb: 0, protein: 36/6, fat: 4/6 },
+  },
+  {
+    id: 'm-salad-no-cheese',
+    name: 'Keto Salad (no cheese)',
+    type: 'meal',
+    zone: 'meals',
+    desc: 'Kale · red onion · Kalamata olives · olive oil, ACV, lemon, garlic dressing',
+    cal: 292, carb: 8, protein: 3, fat: 23,
+    customizable: true,
+    unit: 'serving',
+    defaultQty: 1,
+    perOz: null,
+    sizes: [
+      { label: 'Small',  cal: 218, carb: 6,  protein: 2, fat: 17 },
+      { label: 'Medium', cal: 292, carb: 8,  protein: 3, fat: 23 },
+      { label: 'Large',  cal: 365, carb: 10, protein: 4, fat: 29 },
+    ],
+  },
+  {
+    id: 'e-butter-half-tbsp',
+    name: 'Butter (½ tbsp)',
+    type: 'snack',
+    zone: 'snacks',
+    desc: '½ tbsp unsalted butter',
+    cal: 51, carb: 0, protein: 0, fat: 6,
+    customizable: false,
+  },
+  {
     id: 'm-bpc',
     name: 'Bulletproof Coffee',
     type: 'meal',
@@ -1667,6 +1718,7 @@ function renderPlacedCard(zone, food, instanceId) {
 
   const inst0 = placed.find(p => p.instanceId === instanceId);
   const isEaten = inst0 ? inst0.eaten !== false : true;
+  const servings = inst0 ? (inst0.servings || 1) : 1;
   if (!isEaten) div.classList.add('not-eaten');
 
   div.innerHTML = `
@@ -1679,9 +1731,26 @@ function renderPlacedCard(zone, food, instanceId) {
       ${macroChips(macros)}
     </div>
     ${fieldsHtml}
+    <div class="meal-fields">
+      <div class="meal-field-row">
+        <label>Servings</label>
+        <input type="number" class="servings-input" min="0.5" max="10" step="0.5" value="${servings}">
+      </div>
+    </div>
   `;
 
   zone.appendChild(div);
+
+  // wire up servings input
+  div.querySelector('.servings-input').addEventListener('input', e => {
+    const inst = placed.find(p => p.instanceId === instanceId);
+    if (inst) {
+      inst.servings = parseFloat(e.target.value) || 1;
+      refreshMacroChips(instanceId);
+      updateTotals();
+      saveState();
+    }
+  });
 
   // wire up eaten checkbox
   const eatenCheck = div.querySelector('.eaten-check');
@@ -1702,6 +1771,8 @@ function renderPlacedCard(zone, food, instanceId) {
       const inst = placed.find(p => p.instanceId === instanceId);
       if (inst) {
         inst.qty = parseFloat(qtyInput.value) || 1;
+        // Clear any override so the qty adjustment takes effect
+        inst.override = undefined;
         refreshMacroChips(instanceId);
         updateTotals();
         saveState();
@@ -1715,6 +1786,8 @@ function renderPlacedCard(zone, food, instanceId) {
       const inst = placed.find(p => p.instanceId === instanceId);
       if (inst) {
         inst.sizeIndex = parseInt(sizeSelect.value);
+        // Clear any override so the size selection takes effect
+        inst.override = undefined;
         refreshMacroChips(instanceId);
         updateTotals();
         saveState();
@@ -1812,28 +1885,38 @@ function getMacrosForInstance(instanceId) {
   const inst = placed.find(p => p.instanceId === instanceId);
   if (!inst) return { cal: 0, carb: 0, protein: 0, fat: 0 };
 
+  const s = inst.servings || 1;
+  let base;
+
   // Use manual override if present
-  if (inst.override) return inst.override;
+  if (inst.override) {
+    base = inst.override;
+  } else {
+    const food = FOODS.find(f => f.id === inst.foodId);
+    if (!food) return { cal: 0, carb: 0, protein: 0, fat: 0 };
 
-  const food = FOODS.find(f => f.id === inst.foodId);
-  if (!food) return { cal: 0, carb: 0, protein: 0, fat: 0 };
-
-  if (food.perOz) {
-    const qty = inst.qty || food.defaultQty;
-    return {
-      cal: food.perOz.cal * qty,
-      carb: food.perOz.carb * qty,
-      protein: food.perOz.protein * qty,
-      fat: food.perOz.fat * qty,
-    };
+    if (food.perOz) {
+      const qty = inst.qty || food.defaultQty;
+      base = {
+        cal: food.perOz.cal * qty,
+        carb: food.perOz.carb * qty,
+        protein: food.perOz.protein * qty,
+        fat: food.perOz.fat * qty,
+      };
+    } else if (food.sizes) {
+      const sz = food.sizes[inst.sizeIndex ?? 1];
+      base = { cal: sz.cal, carb: sz.carb, protein: sz.protein, fat: sz.fat };
+    } else {
+      base = { cal: food.cal, carb: food.carb, protein: food.protein, fat: food.fat };
+    }
   }
 
-  if (food.sizes) {
-    const s = food.sizes[inst.sizeIndex ?? 1];
-    return { cal: s.cal, carb: s.carb, protein: s.protein, fat: s.fat };
-  }
-
-  return { cal: food.cal, carb: food.carb, protein: food.protein, fat: food.fat };
+  return {
+    cal:     base.cal     * s,
+    carb:    base.carb    * s,
+    protein: base.protein * s,
+    fat:     base.fat     * s,
+  };
 }
 
 // ─── Totals ────────────────────────────────────────────────────────────────────
@@ -2263,25 +2346,30 @@ function showRecommendationBanner() {
   const banner = document.getElementById('rec-banner');
   const recText = document.getElementById('rec-text');
 
-  // Only show recommendations when viewing today
-  if (currentDate !== todayStr()) {
+  // Show recommendations when viewing today or planning tomorrow
+  const isTomorrow = currentDate === dateStrFromOffset(1);
+  if (currentDate !== todayStr() && !isTomorrow) {
     banner.style.display = 'none';
     return;
   }
 
-  const yesterdayStr = dateStrFromOffset(-1);
-  const yActuals = getActualsForDay(yesterdayStr);
+  // When planning tomorrow, base recommendations on today; when on today, use yesterday
+  const referenceStr = isTomorrow ? todayStr() : dateStrFromOffset(-1);
+  const yActuals = getActualsForDay(referenceStr);
   if (!yActuals || yActuals.count === 0) {
     banner.style.display = 'none';
     return;
   }
 
+  const dayWord = isTomorrow ? 'today' : 'yesterday';
+  const planWord = isTomorrow ? 'tomorrow' : 'today';
   const recs = [];
-  if (yActuals.carb > 18) recs.push('You hit your carb limit yesterday — the matcha drinks and almond milk add up fast. We will try cutting one today.');
-  else if (yActuals.carb <= 12) recs.push('Plenty of carb headroom yesterday — you could add more veg today.');
-  if (yActuals.cal < 1500) recs.push('Under your calorie goal yesterday — add more fat today (avocado, butter, olive oil).');
-  else if (yActuals.cal > 1900) recs.push('Over your calorie goal — try trimming a portion or skipping the cheese snack.');
-  if (yActuals.protein < 80) recs.push('Protein was low — add an extra egg or more chicken today.');
+  if (yActuals.carb > 18) recs.push(`You hit your carb limit ${dayWord} — the matcha drinks and almond milk add up fast. We will try cutting one ${planWord}.`);
+  else if (yActuals.carb <= 12) recs.push(`Plenty of carb headroom ${dayWord} — you could add more veg ${planWord}.`);
+  if (yActuals.cal < 1500) recs.push(`Under your calorie goal ${dayWord} — add more fat ${planWord} (avocado, butter, olive oil).`);
+  else if (yActuals.cal > 1900) recs.push(`Over your calorie goal ${dayWord} — try trimming a portion or skipping the cheese snack ${planWord}.`);
+  if (yActuals.protein < 80) recs.push(`Protein was low ${dayWord} — add an extra egg or more chicken ${planWord}.`);
+  if (yActuals.protein > 140) recs.push(`Protein was high ${dayWord} (${yActuals.protein}g) — ease up on the double proteins ${planWord} and lean into fat instead.`);
 
   if (recs.length === 0) {
     banner.style.display = 'none';
