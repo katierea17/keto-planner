@@ -2397,30 +2397,23 @@ function showRecommendationBanner() {
   const banner = document.getElementById('rec-banner');
   const recText = document.getElementById('rec-text');
 
-  // Show recommendations when viewing today or planning tomorrow
-  const isTomorrow = currentDate === dateStrFromOffset(1);
-  if (currentDate !== todayStr() && !isTomorrow) {
-    banner.style.display = 'none';
-    return;
-  }
-
-  // When planning tomorrow, base recommendations on today; when on today, use yesterday
-  const referenceStr = isTomorrow ? todayStr() : dateStrFromOffset(-1);
+  // Show banner for any day that has a previous day with data
+  const prevDateObj = new Date(currentDate + 'T12:00:00');
+  prevDateObj.setDate(prevDateObj.getDate() - 1);
+  const referenceStr = localDateStr(prevDateObj);
   const yActuals = getActualsForDay(referenceStr);
   if (!yActuals || yActuals.count === 0) {
     banner.style.display = 'none';
     return;
   }
 
-  const dayWord  = 'yesterday';
-  const planWord = isTomorrow ? 'tomorrow' : 'today';
   const recs = [];
-  if (yActuals.carb > 18) recs.push(`You hit your carb limit ${dayWord} — the matcha drinks and almond milk add up fast. We will try cutting one ${planWord}.`);
-  else if (yActuals.carb <= 12) recs.push(`Plenty of carb headroom ${dayWord} — you could add more veg ${planWord}.`);
-  if (yActuals.cal < 1500) recs.push(`Under your calorie goal ${dayWord} — add more fat ${planWord} (avocado, butter, olive oil).`);
-  else if (yActuals.cal > 1900) recs.push(`Over your calorie goal ${dayWord} — try trimming a portion or skipping the cheese snack ${planWord}.`);
-  if (yActuals.protein < 80) recs.push(`Protein was low ${dayWord} — add an extra egg or more chicken ${planWord}.`);
-  if (isTomorrow && yActuals.protein > 140) recs.push(`Protein was high ${dayWord} (${yActuals.protein}g) — ease up on the double proteins ${planWord} and lean into fat instead.`);
+  if (yActuals.carb > 18) recs.push(`Carbs were over yesterday (${yActuals.carb}g) — watch the matcha and almond milk today.`);
+  else if (yActuals.carb <= 12) recs.push(`Great carb day yesterday (${yActuals.carb}g) — you have room for a little extra veg today.`);
+  if (yActuals.cal < 1500) recs.push(`Under calorie goal yesterday (${yActuals.cal} kcal) — add more fat today: avocado, butter, or olive oil.`);
+  else if (yActuals.cal > 1900) recs.push(`Over calorie goal yesterday (${yActuals.cal} kcal) — try trimming a portion today.`);
+  if (yActuals.protein < 80) recs.push(`Protein was low yesterday (${yActuals.protein}g) — add an extra egg or more protein today.`);
+  if (yActuals.protein > 140) recs.push(`Protein was high yesterday (${yActuals.protein}g) — lean into fat today instead of doubling up on protein.`);
 
   if (recs.length === 0) {
     banner.style.display = 'none';
